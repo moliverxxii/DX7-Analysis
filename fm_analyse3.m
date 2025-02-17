@@ -12,11 +12,12 @@ path = 'vox';
 l_files = dir(fullfile(path, '*.wav'));
 files = {l_files.name};
 
-for a = files()
+for a = files
 	n = 1
 	file_path             = fullfile(path, a{1})
 	[a_sample, f_sample]  = audioread(file_path);
 	n_sample = size(a_sample)(1);
+	FREQUENCE = round(n_rep*f_sample/n_sample)
 	a_sample = a_sample(1:round(2*n_sample/n_rep), 1);
 	n_sample = size(a_sample)(1);
 
