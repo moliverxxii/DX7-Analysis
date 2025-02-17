@@ -21,7 +21,7 @@ for ratio_c = (1:n_ratio)
 							a_level)...
 					        )(1:n_harmonics+1);
 			n++;
-		end
+	end
 	result3 = 20*log10(result2(:,:,ratio_c, ratio_m));
 	%disp("");
 	disp([ratio_c, ratio_m])
