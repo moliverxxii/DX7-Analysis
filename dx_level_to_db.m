@@ -1,3 +1,4 @@
-function level_db = dx_level_to_db(level_n)
-level_db = 3*(level_n - 99)/4
+function level_db = dx_level_to_db(n_level, b_modulator = false)
+level_db = 20*log10(dx_level_to_gain(n_level, b_modulator));
 end
+

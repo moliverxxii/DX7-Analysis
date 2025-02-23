@@ -1,0 +1,104 @@
+mod_none = 0;
+mod_mod1 = 1;
+mod_mod2 = 2;
+mod_y    = 3;
+
+out_y       = 0;
+out_mod1    = 1;
+out_mod1_p  = 2;
+out_mod2    = 3;
+
+modulations = ...
+{
+mod_mod1;
+mod_none;
+mod_mod1;
+mod_mod1;
+mod_mod1;
+mod_none
+};
+
+outputs = ...
+{
+out_y;
+out_mod1;
+out_y;
+out_y;
+out_y;
+out_mod1;
+};
+
+algorithm = struct("modulation", modulations, ...
+                   "output",     outputs)
+%file opening 
+path = 'vox';
+l_files = dir(fullfile(path, '*.wav'));
+files = {l_files.name};
+
+n_rep       = 20;
+file_path             = fullfile(path, files{3})
+[a_sample, f_sample]  = audioread(file_path);
+n_sample = size(a_sample)(1);
+f_signal = n_rep*f_sample/n_sample
+a_sample = a_sample(1:round(n_sample/n_rep), 1);
+n_sample = size(a_sample)(1);
+
+%dx7_algorithm;
+t_total  = 1/f_signal;
+t_n      = (0:n_sample-1)'/n_sample;
+t_r      = t_n/f_signal;
+x = 2 * pi * t_n;
+m_sample = rotated_matrix(a_sample);
+
+r_max   = 31;
+r_min   = 1;
+l_max   = 99;
+l_min   = 0;
+concat_output = [];
+n_trial = l_max^6 * r_max^6;
+n_trial = 3700000;
+t_start = time;
+t_now   = time;
+
+best_result.r2 = 0;
+oscillators = zeros(6,1);
+levels      = zeros(6,1);
+n_use = 6;
+
+for n_ = (1:n_trial)
+	%disp(n_)
+	if(rem(n_,400) == 399)
+		t_now = time;
+		t_elapsed = t_now - t_start;
+		t_remaining = floor((n_trial - n_) * t_elapsed/n_);
+		display_hour(t_remaining);
+	end
+	oscillators(7-n_use:6) = randi(r_max, n_use, 1);
+	levels(7-n_use:6)      = [randi(l_max, n_use, 1)];
+	%disp([oscillators, levels]')
+	
+	y = dx7(x, algorithm, oscillators, levels);
+	size(y);
+	size(m_sample);
+	correlatore = corr(m_sample, y);
+	[m, m_position] = max(correlatore.^2,[], 1);
+	if(m > best_result.r2)
+		best_result.r2        = m;
+		best_result.operators = oscillators';
+		best_result.levels    = levels';
+		disp(best_result)
+		best_corr = correlatore(m_position);
+		correction = std(m_sample(:,m_position))/(std(y)*best_corr);
+		display_y =  correction*circshift(y, -m_position);
+		plot(t_r,[display_y, a_sample]);
+
+		axis([0,1/f_signal, -1, 1])
+		grid
+		title(disp(best_result))
+		sound(dx_level_to_gain(70)*[repmat(display_y/max(abs(display_y),[],1),100,1); repmat(a_sample,100,1)], f_sample);
+		drawnow;
+	end
+
+end
+
+disp(best_result)
