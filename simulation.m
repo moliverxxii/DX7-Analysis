@@ -65,12 +65,28 @@ oscillators = zeros(6,1);
 levels      = zeros(6,1);
 n_use = 6;
 
+t_now = time;
+t_elapsed = t_now - t_start;
+r2_array   = [];
+figure(1)
+
+pl1 = subplot(121)
+gr1 = plot(pl1, 0, [0, 0]);
+axis(pl1, [0,1/f_signal, -1, 1])
+grid(pl1, 'on')
+title(pl1, disp(best_result))
+xlabel(pl1, "t (s)")
+pl2 = subplot(122)
+gr2 = plot(pl2, 0, 0,'-+')
+xlabel(pl2, "t (s)")
+grid(pl2, 'on')
+
 for n_ = (1:n_trial)
 	%disp(n_)
+	t_now = time;
+	t_elapsed = t_now - t_start;
+	t_remaining = floor((n_trial - n_) * t_elapsed/n_);
 	if(rem(n_,400) == 399)
-		t_now = time;
-		t_elapsed = t_now - t_start;
-		t_remaining = floor((n_trial - n_) * t_elapsed/n_);
 		display_hour(t_remaining);
 	end
 	oscillators(7-n_use:6) = randi(r_max, n_use, 1);
@@ -90,12 +106,16 @@ for n_ = (1:n_trial)
 		best_corr = correlatore(m_position);
 		correction = std(m_sample(:,m_position))/(std(y)*best_corr);
 		display_y =  correction*circshift(y, -m_position);
-		plot(t_r,[display_y, a_sample]);
+		set(gr1(1), 'xdata', t_r', 'ydata', display_y)
+		set(gr1(2), 'xdata', t_r', 'ydata', a_sample)
+		title(pl1, disp(best_result))
 
-		axis([0,1/f_signal, -1, 1])
-		grid
-		title(disp(best_result))
 		sound(dx_level_to_gain(70)*[repmat(display_y/max(abs(display_y),[],1),100,1); repmat(a_sample,100,1)], f_sample);
+
+		r2_array = [r2_array; t_elapsed, best_result.r2]
+		set(gr2, 'xdata', r2_array(:,1), 'ydata', r2_array(:,2))
+		axis(pl2, [0, r2_array(end, 1), 0, 1])
+		title(pl2,["r^2 = ", num2str(r2_array(end,2))])
 		drawnow;
 	end
 
