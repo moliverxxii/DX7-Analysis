@@ -36,7 +36,7 @@ l_files = dir(fullfile(path, '*.wav'));
 files = {l_files.name};
 
 n_rep       = 20;
-file_path             = fullfile(path, files{3})
+file_path             = fullfile(path, files{4})
 [a_sample, f_sample]  = audioread(file_path);
 n_sample = size(a_sample)(1);
 f_signal = n_rep*f_sample/n_sample
@@ -70,25 +70,31 @@ t_elapsed = t_now - t_start;
 r2_array   = [];
 figure(1)
 
-pl1 = subplot(121)
+stat_step = 1/20;
+stat_classes = 0:stat_step:1;
+statistics = zeros(1,length(stat_classes));
+
+pl1 = subplot(131)
 gr1 = plot(pl1, 0, [0, 0]);
 axis(pl1, [0,1/f_signal, -1, 1])
 grid(pl1, 'on')
 title(pl1, disp(best_result))
 xlabel(pl1, "t (s)")
-pl2 = subplot(122)
+pl2 = subplot(132)
 gr2 = plot(pl2, 0, 0,'-+')
 xlabel(pl2, "t (s)")
 grid(pl2, 'on')
 
+pl3 = subplot(133)
+gr3 = semilogy(pl3, stat_classes, statistics, '-')
+axis(pl3, [-0.1, 1.1, 1.0e-7, 1])
+grid(pl3, 'on')
+set(pl3, 'xtick', 0:0.1:1)
 for n_ = (1:n_trial)
 	%disp(n_)
 	t_now = time;
 	t_elapsed = t_now - t_start;
 	t_remaining = floor((n_trial - n_) * t_elapsed/n_);
-	if(rem(n_,400) == 399)
-		display_hour(t_remaining);
-	end
 	oscillators(7-n_use:6) = randi(r_max, n_use, 1);
 	levels(7-n_use:6)      = [randi(l_max, n_use, 1)];
 	%disp([oscillators, levels]')
@@ -98,6 +104,10 @@ for n_ = (1:n_trial)
 	size(m_sample);
 	correlatore = corr(m_sample, y);
 	[m, m_position] = max(correlatore.^2,[], 1);
+
+        stat_index = ceil(m/stat_step);
+        statistics(stat_index)++;
+        
 	if(m > best_result.r2)
 		best_result.r2        = m;
 		best_result.operators = oscillators';
@@ -112,10 +122,17 @@ for n_ = (1:n_trial)
 
 		sound(dx_level_to_gain(70)*[repmat(display_y/max(abs(display_y),[],1),100,1); repmat(a_sample,100,1)], f_sample);
 
-		r2_array = [r2_array; t_elapsed, best_result.r2]
+		r2_array = [r2_array; t_elapsed, best_result.r2];
 		set(gr2, 'xdata', r2_array(:,1), 'ydata', r2_array(:,2))
-		axis(pl2, [0, r2_array(end, 1), 0, 1])
 		title(pl2,["r^2 = ", num2str(r2_array(end,2))])
+
+
+
+	end
+	if(rem(n_,400) == 399)
+		axis(pl2, [0, t_elapsed, 0, 1])
+		display_hour(t_remaining);
+		set(gr3, 'xdata', [stat_classes(1:end-1); stat_classes(2:end)](:), 'ydata', [statistics;statistics](:)/n_)
 		drawnow;
 	end
 
