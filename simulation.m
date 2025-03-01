@@ -1,3 +1,4 @@
+pkg load optim
 clear
 %algorithm definition
 mod_none = 0;
@@ -13,10 +14,10 @@ out_mod2    = 3;
 c_modulations = ...
 {
 mod_mod1;
-mod_none;
 mod_mod1;
 mod_none;
 mod_mod1;
+mod_none;
 mod_none
 };
 
@@ -24,14 +25,14 @@ c_outputs = ...
 {
 out_y;
 out_mod1;
-out_y;
 out_mod1;
 out_y;
+out_mod1_p;
 out_mod1;
 };
 
-algorithm = struct("modulation", c_modulations, ...
-                   "output",     c_outputs)
+global algorithm = struct("modulation", c_modulations, ...
+                          "output",     c_outputs)
 %file opening 
 s_path = 'vox';
 l_files = dir(fullfile(s_path, '*.wav'));
@@ -46,11 +47,11 @@ a_sample = a_sample(1:round(n_sample/n_rep), 1);
 n_sample = size(a_sample)(1);
 
 %dx7_algorithm;
-t_total  = 1/f_signal;
-t_n      = (0:n_sample-1)'/n_sample;
-t_r      = t_n/f_signal;
-x = 2 * pi * t_n;
-m_sample = rotated_matrix(a_sample);
+t_total             = 1/f_signal;
+t_n                 = (0:n_sample-1)'/n_sample;
+t_r                 = t_n/f_signal;
+global x_simulation = 2 * pi * t_n;
+global m_sample     = rotated_matrix(a_sample);
 
 %parameters
 n_ratio_max = 31;
@@ -62,8 +63,8 @@ n_use       = 6;
 
 
 best_result.r2 = 0;
-oscillators    = zeros(6,1);
-levels         = zeros(6,1);
+global oscillators    = zeros(6,1);
+global levels         = zeros(6,1);
 
 %time estimation init
 t_now      = time;
@@ -94,38 +95,48 @@ gr3 = semilogy(pl3, stat_classes, statistics, '-');
 axis(pl3, [-0.1, 1.1, 1.0e-7, 1])
 grid(pl3, 'on')
 set(pl3, 'xtick', 0:0.1:1)
+global y_simulation;
+global r2_max_index;
+global r_max;
 for n_ = (1:n_trial)
 	t_now = time;
 	t_elapsed = t_now - t_start;
 	t_remaining = floor((n_trial - n_) * t_elapsed/n_);
 	oscillators(7-n_use:6) = randi(n_ratio_max, n_use, 1);
 	levels(7-n_use:6)      = [randi(n_level_max, n_use, 1)];
-	
-	y_simulation             = dx7_simulator(x, algorithm, oscillators, levels);
-	v_corr_sample_simulation = corr(m_sample, y_simulation);
-	[r2_max, r2_max_index]   = max(v_corr_sample_simulation.^2,[], 1);
-
+	nonlin_min_settings.ubound = [n_ratio_max*ones(6,1); n_level_max*ones(6,1)];
+	nonlin_min_settings.lbound = [ones(6,1); zeros(6,1)];
+	nonlin_min_settings.fract_prec = ones(12,1);
+	nonlin_min_settings.max_fract_change = ones(12,1);
+	nonlin_min_settings.MaxIter = 100;
+	nonlin_min_settings.Algorithm = 'samin';
+	[params, r2_max, cvg, ret] = nonlin_min(@dx7_corr, [oscillators; levels], nonlin_min_settings);
+	cvg
+	ret.niter
+	r2_max = -r2_max;
+        %[r2_max, corr_sample_simulation_best, r2_max_index, y_simulation] = dx7_corr([oscillators; levels]);
+	corr_sample_simulation_best = r_max;
         stat_index = ceil(r2_max/stat_step);
         statistics(stat_index)++;
         
 	if(r2_max > best_result.r2)
 		%changing the result
 		best_result.r2        = r2_max;
-		best_result.operators = oscillators';
-		best_result.levels    = levels';
+		best_result.operators = params(1:6)';
+		best_result.levels    = params(7:12)';
 		disp(best_result)
 
 		%calculating the projection
-		corr_sample_simulation_best = v_corr_sample_simulation(r2_max_index);
 		correction = std(m_sample(:,r2_max_index))/(std(y_simulation)*corr_sample_simulation_best);
 		display_y =  correction*circshift(y_simulation, -r2_max_index);
+		%updating the simulation/sample curve
 		set(gr1(1), 'xdata', t_r', 'ydata', display_y)
 		set(gr1(2), 'xdata', t_r', 'ydata', a_sample)
 		title(pl1, disp(best_result))
 
 		sound(dx7_level_to_gain(70)*[repmat(display_y/max(abs(display_y),[],1),100,1); repmat(a_sample,100,1)], f_sample);
 
-		%updating the r^2 curve.
+		%updating the r^2 curve
 		r2_array = [r2_array; t_elapsed, best_result.r2];
 		set(gr2, 'xdata', r2_array(:,1), 'ydata', r2_array(:,2))
 		title(pl2,["r^2 = ", num2str(r2_array(end,2))])
