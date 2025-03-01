@@ -1,4 +1,4 @@
-function harmonics = analyse_period(a_signal)
+function v_harmonics = analyse_period(v_signal)
 
-harmonics = 2*abs(fft(a_signal)/size(a_signal)(1));
+v_harmonics = 2*abs(fft(v_signal)/size(v_signal)(1));
 end

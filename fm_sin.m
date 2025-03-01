@@ -1,3 +1,3 @@
-function a_signal = fm_sin(n, modulator, r_c)
-a_signal = sin(r_c*n - modulator);
+function a_y = fm_sin(a_x, modulator, n_ratio)
+a_y = sin(n_ratio * a_x - modulator);
 end

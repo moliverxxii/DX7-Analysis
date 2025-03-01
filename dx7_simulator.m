@@ -1,4 +1,4 @@
-function y = dx7(x, algorithm, oscillators, levels)
+function y = dx7_simulator(x, algorithm, oscillators, levels)
 mod_none = 0;
 mod_mod1 = 1;
 mod_mod2 = 2;
@@ -34,13 +34,13 @@ end
 	switch(operator.output)
 	case out_y
 		n_output++;
-		y += dx_level_to_gain(levels(n_operator)) * y_operator;
+		y += dx7_level_to_gain(levels(n_operator)) * y_operator;
 	case out_mod1
-		mod1 = dx_level_to_gain(levels(n_operator), true) * y_operator;
+		mod1 = dx7_level_to_gain(levels(n_operator), true) * y_operator;
 	case out_mod1_p
-		mod1 += dx_level_to_gain(levels(n_operator), true) * y_operator;
+		mod1 += dx7_level_to_gain(levels(n_operator), true) * y_operator;
 	case out_mod2
-		mod2 = dx_level_to_gain(levels(n_operator), true) * y_operator;
+		mod2 = dx7_level_to_gain(levels(n_operator), true) * y_operator;
 	end
 	n_operator--;
 end
