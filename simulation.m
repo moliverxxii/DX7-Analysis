@@ -108,8 +108,9 @@ for n_ = (1:n_trial)
 	nonlin_min_settings.lbound = [ones(6,1); zeros(6,1)];
 	nonlin_min_settings.fract_prec = ones(12,1);
 	nonlin_min_settings.max_fract_change = ones(12,1);
-	nonlin_min_settings.MaxIter = 100;
+	nonlin_min_settings.MaxIter = 10;
 	nonlin_min_settings.Algorithm = 'samin';
+
 	[params, r2_max, cvg, ret] = nonlin_min(@dx7_corr, [oscillators; levels], nonlin_min_settings);
 	cvg
 	ret.niter
