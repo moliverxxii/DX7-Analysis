@@ -16,7 +16,7 @@ mod2       = zeros(n_x, 1);
 x_operator = zeros(n_x, 1);
 y_operator = zeros(n_x, 1);
 m_operator = zeros(n_x, 1);
-n_operator = 6;
+n_operator = length(oscillators);
 n_output = 0;
 for operator = algorithm(end:-1:1)'
 	operator;

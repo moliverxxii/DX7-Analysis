@@ -1,5 +1,5 @@
-pkg load optim
 clear
+pkg load ga
 %algorithm definition
 mod_none = 0;
 mod_mod1 = 1;
@@ -39,7 +39,7 @@ l_files = dir(fullfile(s_path, '*.wav'));
 files = {l_files.name};
 
 n_rep                 = 20;
-s_file_path           = fullfile(s_path, files{3})
+s_file_path           = fullfile(s_path, files{7})
 [a_sample, f_sample]  = audioread(s_file_path);
 n_sample = size(a_sample)(1);
 f_signal = n_rep*f_sample/n_sample
@@ -104,16 +104,14 @@ for n_ = (1:n_trial)
 	t_remaining = floor((n_trial - n_) * t_elapsed/n_);
 	oscillators(7-n_use:6) = randi(n_ratio_max, n_use, 1);
 	levels(7-n_use:6)      = [randi(n_level_max, n_use, 1)];
-	nonlin_min_settings.ubound = [n_ratio_max*ones(6,1); n_level_max*ones(6,1)];
-	nonlin_min_settings.lbound = [ones(6,1); zeros(6,1)];
-	nonlin_min_settings.fract_prec = ones(12,1);
-	nonlin_min_settings.max_fract_change = ones(12,1);
-	nonlin_min_settings.MaxIter = 10;
-	nonlin_min_settings.Algorithm = 'samin';
-
-	[params, r2_max, cvg, ret] = nonlin_min(@dx7_corr, [oscillators; levels], nonlin_min_settings);
-	cvg
-	ret.niter
+	v_lower_bound = [ones(6,1); zeros(6,1)];
+	v_upper_bound = [n_ratio_max*ones(6,1); n_level_max*ones(6,1)];
+	n_parameters = length(v_upper_bound);
+	opts = gaoptimset('PopInitRange', [v_lower_bound'; v_upper_bound'],...
+	                  'Generations', 40,...
+			  'PopulationSize', 1000);
+	[params, r2_max] = ga(@dx7_corr, n_parameters, [], [], [], [], [], [], [], opts);
+	%[params, r2_max] = ga(@dx7_corr, n_parameters, [], [], [], [], v_lower_bound, v_upper_bound, [], opts);
 	r2_max = -r2_max;
         %[r2_max, corr_sample_simulation_best, r2_max_index, y_simulation] = dx7_corr([oscillators; levels]);
 	corr_sample_simulation_best = r_max;
@@ -123,13 +121,13 @@ for n_ = (1:n_trial)
 	if(r2_max > best_result.r2)
 		%changing the result
 		best_result.r2        = r2_max;
-		best_result.operators = params(1:6)';
-		best_result.levels    = params(7:12)';
+		best_result.operators = round(params(1:6));
+		best_result.levels    = round(params(7:12));
 		disp(best_result)
 
 		%calculating the projection
 		correction = std(m_sample(:,r2_max_index))/(std(y_simulation)*corr_sample_simulation_best);
-		display_y =  correction*circshift(y_simulation, -r2_max_index);
+		display_y  =  correction*circshift(y_simulation, -r2_max_index);
 		%updating the simulation/sample curve
 		set(gr1(1), 'xdata', t_r', 'ydata', display_y)
 		set(gr1(2), 'xdata', t_r', 'ydata', a_sample)
@@ -141,9 +139,7 @@ for n_ = (1:n_trial)
 		r2_array = [r2_array; t_elapsed, best_result.r2];
 		set(gr2, 'xdata', r2_array(:,1), 'ydata', r2_array(:,2))
 		title(pl2,["r^2 = ", num2str(r2_array(end,2))])
-
-
-
+		drawnow;
 	end
 	if(rem(n_,400) == 399)
 		axis(pl2, [0, t_elapsed, 0, 1])
